@@ -3,3 +3,4 @@ dist/
 .clasp.json
 npm-debug.log*
 .DS_Store
+config.ts
