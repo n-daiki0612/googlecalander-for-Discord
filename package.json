@@ -5,7 +5,7 @@
   "main": ".src/main.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node esbuild.js",
+    "build": "node esbuild.cjs",
     "push": "clasp push",
     "open": "clasp open",
     "deploy": "npm run build && npm run push"
@@ -15,7 +15,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "touch": "^3.1.1"
+    "touch": "^3.1.1",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@types/google-apps-script": "^2.0.8",

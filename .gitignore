@@ -4,3 +4,8 @@ dist/
 npm-debug.log*
 .DS_Store
 config.ts
+*.env
+.env.*
+secrets.json
+local.*.json
+register-commands.local.ps1

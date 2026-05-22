@@ -1,0 +1,12 @@
+[
+  {
+    "name": "ping",
+    "description": "health check",
+    "type": 1
+  },
+  {
+    "name": "whoami",
+    "description": "show your discord username",
+    "type": 1
+  }
+]
