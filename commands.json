@@ -8,5 +8,11 @@
     "name": "whoami",
     "description": "show your discord username",
     "type": 1
+  },
+  {
+    "name" :"check",
+    "description":"予定を取得します",
+    "type": 1
+
   }
 ]

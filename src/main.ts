@@ -1,4 +1,5 @@
 import { CONFIG } from "./config.js";
+import { CalendarService } from "./calendar.js";
 
 type GasProxyPayload = {
   proxyToken?: string;
@@ -14,6 +15,12 @@ type FollowupMessage = {
   content: string;
   flags?: number;
 };
+
+function doGet(): GoogleAppsScript.Content.TextOutput {
+  return ContentService
+    .createTextOutput(JSON.stringify({ ok: true, message: "web app is alive" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
 
 function jsonResponse(data: FollowupMessage): GoogleAppsScript.Content.TextOutput {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(
@@ -44,11 +51,18 @@ function handleSlashCommand(payload: GasProxyPayload): FollowupMessage {
     return { content: `You are ${getInvokerName(payload)}` };
   }
 
+  if (command === "schedule") {
+  const calendarService = new CalendarService();
+  const message = calendarService.listUpcomingText();
+
+  return { content: message };
+}
   return {
     content: `Unknown command: /${command}`,
     flags: 64,
   };
 }
+
 
 function doPost(
   e: GoogleAppsScript.Events.DoPost
@@ -70,6 +84,7 @@ function doPost(
         flags: 64,
       });
     }
+    
 
     return jsonResponse(handleSlashCommand(payload));
   } catch (error) {
@@ -79,13 +94,8 @@ function doPost(
     });
   }
 
-    const command = payload.interaction?.data?.name;
 
-    if (command === "ping") {
-      return jsonResponse({ content: "pong from GAS" });
-    }
-
-    if 
+    
 }
 
 function message(): GoogleAppsScript.URL_Fetch.HTTPResponse {

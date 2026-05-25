@@ -1,6 +1,6 @@
 const esbuild = require('esbuild');
 const { GasPlugin } = require('esbuild-gas-plugin');
-const { NodeModulesPolyfillPlugin } = require('@esbuild-plugins/node-modules-polyfill');
+
 
 esbuild
     .build({
@@ -9,7 +9,6 @@ esbuild
         minify: true,
         outfile: "./dist/main.js",
         plugins: [GasPlugin,
-            NOdeMOdulesPollyfillPlugin(),
         ],
     })
     .catch((error) => {
