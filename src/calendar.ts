@@ -39,7 +39,7 @@ export class CalendarService {
         const events = this.eventsget({ days: 7, maxResults: 10 });
 
         if (events.length === 0) {
-            return "予定はありません。";
+            return "予定はありません";
         }
 
 
@@ -54,6 +54,20 @@ export class CalendarService {
                 return `${start} ${title}`;
             })
             .join("\n");
+    }
+
+    public createEventFromModal(input: {
+        title: string;
+        date: string;
+        startTime: string;
+        durationMinutes: number;
+    }): string {
+        const start = new Date(`${input.date}T${input.startTime}:00+09:00`);
+        const end = new Date(start.getTime() + input.durationMinutes * 60 * 1000);
+
+        const event = this.calender.createEvent(input.title, start, end);
+
+        return `予定を追加しました: ${event.getTitle()}`;
     }
 
 

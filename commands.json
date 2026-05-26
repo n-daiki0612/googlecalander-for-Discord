@@ -10,9 +10,14 @@
     "type": 1
   },
   {
-    "name" :"check",
+    "name" :"schedule",
     "description":"予定を取得します",
     "type": 1
 
-  }
+  },
+  {
+  "name": "schedule_add",
+  "description": "予定追加フォームを開きます",
+  "type": 1
+}
 ]

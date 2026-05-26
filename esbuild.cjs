@@ -7,6 +7,7 @@ esbuild
         entryPoints: ["./src/main.ts"],
         bundle: true,
         minify: true,
+        target:"es2019",
         outfile: "./dist/main.js",
         plugins: [GasPlugin,
         ],

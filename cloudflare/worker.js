@@ -38,6 +38,70 @@ export default {
       return json({ type: 1 }, 200);
     }
 
+    if (interaction.type === 2 && interaction.data?.name === "schedule_add") {
+  return json({
+    type: 9,
+    data: {
+      custom_id: "schedule_add_modal",
+      title: "予定を追加",
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: "title",
+              label: "タイトル",
+              style: 1,
+              required: true,
+              placeholder: "例: 会議"
+            }
+          ]
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: "date",
+              label: "日付",
+              style: 1,
+              required: true,
+              placeholder: "例: 2026-05-27"
+            }
+          ]
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: "startTime",
+              label: "開始時刻",
+              style: 1,
+              required: true,
+              placeholder: "例: 13:00"
+            }
+          ]
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: "durationMinutes",
+              label: "所要時間（分）",
+              style: 1,
+              required: true,
+              placeholder: "例: 60"
+            }
+          ]
+        }
+      ]
+    }
+  }, 200);
+}
+
     ctx.waitUntil(
       processInteractionInBackground({
         env,
