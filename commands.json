@@ -12,17 +12,22 @@
   },
   {
     "name": "schedule",
-    "description": "check",
+    "description": "スケジュールを確認します",
     "type": 1
   },
   {
     "name": "schedule_add",
-    "description": "add",
+    "description": "スケジュールを追加します",
     "type": 1
   },
   {
     "name":"setup",
-    "description":
+    "description":"セットアップの際に実施してください",
+    "type":1
 
-  }
+  },
+  {"name":"setup_clear",
+  "description":"情報をサーバーより削除します",
+  "type":1
+}
 ]

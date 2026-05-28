@@ -132,8 +132,11 @@ function doPost(
 
 
 }
-
 function message(): GoogleAppsScript.URL_Fetch.HTTPResponse {
+  if (!CONFIG.DISCORD_WEBHOOK_URL) {
+    throw new Error("Missing Script Property: DISCORD_WEBHOOK_URL");
+  }
+
   const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
     method: "post",
     contentType: "application/json",

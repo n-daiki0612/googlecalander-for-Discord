@@ -113,6 +113,23 @@ export default {
       }, 200);
     }
 
+    if (interaction.type === 2 && interaction.data?.name === "setup_clear") {
+      if (!isGuildAdmin(interaction)) {
+        return json({
+          type: 4,
+          data: { content: "Only server admins can run /setup_clear in guilds.", flags: 64 },
+        }, 200);
+      }
+
+      const key = getSettingsKey(interaction);
+      await env.SETTINGS_KV.delete(key);
+
+      return json({
+        type: 4,
+        data: { content: "Setup cleared.", flags: 64 },
+      }, 200);
+    }
+
     if (interaction.type === 2 && interaction.data?.name === "schedule_add") {
       return json({
         type: 9,
@@ -212,7 +229,7 @@ async function processInteractionInBackground({ env, interaction }) {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        proxyToken: settings.PROXY_TOKEN,
+        proxyToken: settings.proxyToken,
         interaction,
       }),
     });
@@ -300,8 +317,11 @@ function getSettingsKey(interaction) {
   if (interaction.guild_id) {
     return `guild:${interaction.guild_id}`;
   }
-  const userId = interaction.member?.user?.id ?? interaction.user?.id;
-  return `user:${userId}`;
+  else if (interaction.user?.id || interaction.member?.user?.id) {
+    const userId = interaction.member?.user?.id ?? interaction.user?.id;
+    return `user:${userId}`;
+  }
+  throw new Error("Cannot resolve settings key");
 }
 
 function getModalValue(interaction, customId) {
