@@ -38,69 +38,144 @@ export default {
       return json({ type: 1 }, 200);
     }
 
-    if (interaction.type === 2 && interaction.data?.name === "schedule_add") {
-  return json({
-    type: 9,
-    data: {
-      custom_id: "schedule_add_modal",
-      title: "予定を追加",
-      components: [
-        {
-          type: 1,
+    if (interaction.type === 2 && interaction.data?.name === "setup") {
+      if (!isGuildAdmin(interaction)) {
+        return json({
+          type: 4,
+          data: { content: "Only server admins can run /setup in guilds.", flags: 64 },
+        }, 200);
+      }
+
+      return json({
+        type: 9,
+        data: {
+          custom_id: "setup_modal",
+          title: "Setup GAS",
           components: [
             {
-              type: 4,
-              custom_id: "title",
-              label: "タイトル",
-              style: 1,
-              required: true,
-              placeholder: "例: 会議"
-            }
-          ]
-        },
-        {
-          type: 1,
-          components: [
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: "gasWebhookUrl",
+                  label: "GAS Webhook URL",
+                  style: 1,
+                  required: true,
+                  placeholder: "https://script.google.com/macros/s/.../exec"
+                }
+              ]
+            },
             {
-              type: 4,
-              custom_id: "date",
-              label: "日付",
-              style: 1,
-              required: true,
-              placeholder: "例: 2026-05-27"
-            }
-          ]
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: "startTime",
-              label: "開始時刻",
-              style: 1,
-              required: true,
-              placeholder: "例: 13:00"
-            }
-          ]
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: "durationMinutes",
-              label: "所要時間（分）",
-              style: 1,
-              required: true,
-              placeholder: "例: 60"
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: "proxyToken",
+                  label: "PROXY_TOKEN",
+                  style: 1,
+                  required: true,
+                  placeholder: "32+ random chars"
+                }
+              ]
             }
           ]
         }
-      ]
+      }, 200);
     }
-  }, 200);
-}
+
+    if (interaction.type === 5 && interaction.data?.custom_id === "setup_modal") {
+      const gasWebhookUrl = getModalValue(interaction, "gasWebhookUrl");
+      const proxyToken = getModalValue(interaction, "proxyToken");
+
+      if (!isValidGasWebhookUrl(gasWebhookUrl)) {
+        return json({
+          type: 4,
+          data: { content: "Invalid GAS_WEBHOOK_URL format.", flags: 64 },
+        }, 200);
+      }
+
+      if (proxyToken.length < 32) {
+        return json({
+          type: 4,
+          data: { content: "PROXY_TOKEN must be 32+ chars.", flags: 64 },
+        }, 200);
+      }
+
+      const key = getSettingsKey(interaction);
+      await env.SETTINGS_KV.put(
+        key,
+        JSON.stringify({ gasWebhookUrl, proxyToken })
+      );
+
+      return json({
+        type: 4,
+        data: { content: "Setup saved.", flags: 64 },
+      }, 200);
+    }
+
+    if (interaction.type === 2 && interaction.data?.name === "schedule_add") {
+      return json({
+        type: 9,
+        data: {
+          custom_id: "schedule_add_modal",
+          title: "予定を追加",
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: "title",
+                  label: "タイトル",
+                  style: 1,
+                  required: true,
+                  placeholder: "例: 会議"
+                }
+              ]
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: "date",
+                  label: "日付",
+                  style: 1,
+                  required: true,
+                  placeholder: "例: 2026-05-27"
+                }
+              ]
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: "startTime",
+                  label: "開始時刻",
+                  style: 1,
+                  required: true,
+                  placeholder: "例: 13:00"
+                }
+              ]
+            },
+            {
+              type: 1,
+              components: [
+                {
+                  type: 4,
+                  custom_id: "durationMinutes",
+                  label: "所要時間（分）",
+                  style: 1,
+                  required: true,
+                  placeholder: "例: 60"
+                }
+              ]
+            }
+          ]
+        }
+      }, 200);
+    }
 
     ctx.waitUntil(
       processInteractionInBackground({
@@ -123,11 +198,21 @@ async function processInteractionInBackground({ env, interaction }) {
   const followupUrl = `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}`;
 
   try {
-    const gasResponse = await fetch(env.GAS_WEBHOOK_URL, {
+    const key = getSettingsKey(interaction);
+    const settings = await env.SETTINGS_KV.get(key, "json");
+    if (!settings?.gasWebhookUrl || !settings?.proxyToken) {
+      await postFollowup(
+        followupUrl,
+        "Setup not found. Run /setup first.",
+        true
+      );
+      return;
+    }
+    const gasResponse = await fetch(settings.gasWebhookUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        proxyToken: env.PROXY_TOKEN,
+        proxyToken: settings.PROXY_TOKEN,
         interaction,
       }),
     });
@@ -209,4 +294,33 @@ function json(payload, status = 200) {
       "content-type": "application/json; charset=UTF-8",
     },
   });
+}
+
+function getSettingsKey(interaction) {
+  if (interaction.guild_id) {
+    return `guild:${interaction.guild_id}`;
+  }
+  const userId = interaction.member?.user?.id ?? interaction.user?.id;
+  return `user:${userId}`;
+}
+
+function getModalValue(interaction, customId) {
+  const rows = interaction.data?.components ?? [];
+  for (const row of rows) {
+    const component = row.components?.find((item) => item.custom_id === customId);
+    if (component?.value) return component.value;
+  }
+  throw new Error(`Missing modal field: ${customId}`);
+}
+
+function isValidGasWebhookUrl(url) {
+  return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url);
+}
+
+function isGuildAdmin(interaction) {
+  if (!interaction.guild_id) return true; // DM は許可
+  const permissions = interaction.member?.permissions;
+  if (!permissions) return false;
+  const ADMINISTRATOR = 1n << 3n;
+  return (BigInt(permissions) & ADMINISTRATOR) === ADMINISTRATOR;
 }

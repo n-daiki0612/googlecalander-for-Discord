@@ -19,5 +19,10 @@
     "name": "schedule_add",
     "description": "add",
     "type": 1
+  },
+  {
+    "name":"setup",
+    "description":
+
   }
 ]
