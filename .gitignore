@@ -9,3 +9,4 @@ config.ts
 secrets.json
 local.*.json
 register-commands.local.ps1
+*.local.*
