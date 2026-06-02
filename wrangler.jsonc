@@ -1,0 +1,5 @@
+{
+  "name": "discord-bot",
+  "compatibility_date": "2026-06-02",
+  "main": "cloudflare/worker.js"
+}

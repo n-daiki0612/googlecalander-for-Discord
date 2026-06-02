@@ -102,10 +102,7 @@ export default {
       }
 
       const key = getSettingsKey(interaction);
-      await env.SETTINGS_KV.put(
-        key,
-        JSON.stringify({ gasWebhookUrl, proxyToken })
-      );
+      await saveSettings(env, key, { gasWebhookUrl, proxyToken });
 
       return json({
         type: 4,
@@ -216,7 +213,7 @@ async function processInteractionInBackground({ env, interaction }) {
 
   try {
     const key = getSettingsKey(interaction);
-    const settings = await env.SETTINGS_KV.get(key, "json");
+    const settings = await loadSettings(env, key);
     if (!settings?.gasWebhookUrl || !settings?.proxyToken) {
       await postFollowup(
         followupUrl,
@@ -343,4 +340,112 @@ function isGuildAdmin(interaction) {
   if (!permissions) return false;
   const ADMINISTRATOR = 1n << 3n;
   return (BigInt(permissions) & ADMINISTRATOR) === ADMINISTRATOR;
+}
+async function saveSettings(env, key, settings) {
+  const jsonText = JSON.stringify(settings);
+  const encrypted = await encryptText(jsonText, env.SETTINGS_ENCRYPTION_KEY);
+  await env.SETTINGS_KV.put(key, JSON.stringify(encrypted));
+}
+
+async function loadSettings(env, key) {
+  const raw = await env.SETTINGS_KV.get(key, "text");
+  if (!raw) return null;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  if (isEncryptedPayload(parsed)) {
+    const decrypted = await decryptText(parsed, env.SETTINGS_ENCRYPTION_KEY);
+    return JSON.parse(decrypted);
+  }
+
+  // Backward compatibility: old plaintext JSON can still be read.
+  if (parsed?.gasWebhookUrl && parsed?.proxyToken) {
+    return parsed;
+  }
+
+  return null;
+}
+
+function isEncryptedPayload(value) {
+  return Boolean(
+    value &&
+    value.v === 1 &&
+    value.alg === "A256GCM" &&
+    typeof value.iv === "string" &&
+    typeof value.data === "string"
+  );
+}
+
+async function encryptText(plainText, keyB64) {
+  const cryptoKey = await importEncryptionKey(keyB64);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const plainBytes = new TextEncoder().encode(plainText);
+
+  const cipherBuffer = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    cryptoKey,
+    plainBytes
+  );
+
+  return {
+    v: 1,
+    alg: "A256GCM",
+    iv: bytesToBase64(iv),
+    data: bytesToBase64(new Uint8Array(cipherBuffer)),
+  };
+}
+
+async function decryptText(payload, keyB64) {
+  const cryptoKey = await importEncryptionKey(keyB64);
+  const iv = base64ToBytes(payload.iv);
+  const cipherBytes = base64ToBytes(payload.data);
+
+  const plainBuffer = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    cryptoKey,
+    cipherBytes
+  );
+
+  return new TextDecoder().decode(plainBuffer);
+}
+
+async function importEncryptionKey(keyB64) {
+  if (!keyB64) {
+    throw new Error("Missing SETTINGS_ENCRYPTION_KEY");
+  }
+
+  const keyBytes = base64ToBytes(keyB64);
+  if (keyBytes.length !== 32) {
+    throw new Error("SETTINGS_ENCRYPTION_KEY must be base64 of 32 bytes");
+  }
+
+  return crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+function bytesToBase64(bytes) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    out[i] = binary.charCodeAt(i);
+  }
+  return out;
 }
